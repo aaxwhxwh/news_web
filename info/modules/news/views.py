@@ -6,11 +6,15 @@
 @time: 2018/08/08
 """
 from flask import session, render_template
-from manage import app
 from . import news_blue
 
 
 @news_blue.route('/')
 def index():
     session['name'] = 2018
-    return 'index'
+    return render_template('news/index.html')
+
+
+@news_blue.errorhandler(404)
+def error_index():
+    return render_template('news/404.html')

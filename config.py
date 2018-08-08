@@ -26,3 +26,9 @@ class Develop(Config):
 
 class Produce(Config):
     pass
+
+
+config = {
+    'develop': Develop,
+    'produce': Produce
+}

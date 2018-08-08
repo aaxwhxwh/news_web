@@ -14,10 +14,12 @@ class Config(object):
     SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:mysql@127.0.0.1:3306/news_web'
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
+    HOST = "127.0.0.1"
+    PORT = 6379
     SESSION_TYPE = 'redis'
     SESSION_USE_SIGNER = True
     PERMANENT_SESSION_FILETIME = 86400
-    SESSION_REDIS = StrictRedis(host='127.0.0.1', port=6379)
+    SESSION_REDIS = StrictRedis(host=HOST, port=PORT)
 
 
 class Develop(Config):

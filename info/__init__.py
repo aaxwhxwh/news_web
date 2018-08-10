@@ -25,13 +25,14 @@ file_log_handler.setFormatter(formatter)
 # 为全局的日志工具对象（flask app使用的）添加日志记录器
 logging.getLogger().addHandler(file_log_handler)
 
+db = SQLAlchemy()
+
 
 def create_app(config_name):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     Session(app)
-    db = SQLAlchemy(app)
-
+    db.init_app(app)
     from info.modules.news import news_blue
     app.register_blueprint(news_blue)
     return app

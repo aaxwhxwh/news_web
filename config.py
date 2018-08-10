@@ -18,19 +18,19 @@ class Config(object):
     PORT = 6379
     SESSION_TYPE = 'redis'
     SESSION_USE_SIGNER = True
-    PERMANENT_SESSION_FILETIME = 86400
+    PERMANENT_SESSION_LIFETIME = 86400
     SESSION_REDIS = StrictRedis(host=HOST, port=PORT)
 
 
-class Develop(Config):
+class DevelopmentConfig(Config):
     DEBUG = True
 
 
-class Produce(Config):
+class ProductionConfig(Config):
     pass
 
 
 config = {
-    'develop': Develop,
-    'produce': Produce
+    'develop': DevelopmentConfig,
+    'produce': ProductionConfig
 }

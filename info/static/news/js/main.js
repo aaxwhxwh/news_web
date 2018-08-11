@@ -150,9 +150,14 @@ $(function(){
 
 var imageCodeId = ""
 
-// TODO 生成一个图片验证码的编号，并设置页面中图片验证码img标签的src属性
+//  生成一个图片验证码的编号，并设置页面中图片验证码img标签的src属性
 function generateImageCode() {
-
+    // 生成uuid
+    imageCodeId = generateUUID();
+    // 拼接url路径，把uuid放入url中作为参数传入后端
+    var url = '/image_code?image_code_id=' + imageCodeId;
+    // 设置img的src属性
+    $('.get_pic_code').attr('src',url);
 }
 
 // 发送短信验证码
@@ -174,7 +179,41 @@ function sendSMSCode() {
         return;
     }
 
-    // TODO 发送短信验证码
+    // 发送短信验证码
+    // 构造请求的参数
+    var params = {
+        'mobile':mobile,
+        'image_code':imageCode,
+        'image_code_id':imageCodeId
+    };
+    // 发送ajax请求
+    $.ajax({
+        url:'/sms_code',
+        type:'post',
+        data:JSON.stringify(params),
+        contentType:'application/json',
+        dataType:'json',
+        success:function(resp){
+            if (resp.errno == '0'){
+                var num = 60;
+                var t = setInterval(function() {
+                    if (num == 1) {
+                        clearInterval(t);
+                        $('.get_code').html('点击获取验证码');
+                        $('.get_code').attr('onclick', 'sendSMSCode()');
+                    } else {
+                        num -= 1;
+                        $('.get_code').html(num + '秒')
+                    }
+                },1000)
+            }else{
+                alert(resp.errmsg);
+                $('.get_code').html('点击获取验证码');
+                $('.get_code').attr('onclick', 'sendSMSCode()');
+            }
+        }
+    })
+
 }
 
 // 调用该函数模拟点击左侧按钮

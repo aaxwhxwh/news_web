@@ -6,11 +6,12 @@
 @time: 2018/08/08
 """
 from flask import Flask
-from config import config
+from config import config, Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 import logging
 from logging.handlers import RotatingFileHandler
+from redis import StrictRedis
 
 
 # 日志文件设置
@@ -26,6 +27,7 @@ file_log_handler.setFormatter(formatter)
 logging.getLogger().addHandler(file_log_handler)
 
 db = SQLAlchemy()
+redis_store = StrictRedis(host=Config.HOST, port=Config.PORT, decode_responses=True)
 
 
 def create_app(config_name):
@@ -35,4 +37,6 @@ def create_app(config_name):
     db.init_app(app)
     from info.modules.news import news_blue
     app.register_blueprint(news_blue)
+    from info.modules.passport import passport_blue
+    app.register_blueprint(passport_blue)
     return app

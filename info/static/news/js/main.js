@@ -3,12 +3,12 @@ $(function(){
 	// 打开登录框
 	$('.login_btn').click(function(){
         $('.login_form_con').show();
-	})
+	});
 	
 	// 点击关闭按钮关闭登录框或者注册框
 	$('.shutoff').click(function(){
 		$(this).closest('form').hide();
-	})
+	});
 
     // 隐藏错误
     $(".login_form #mobile").focus(function(){
@@ -194,6 +194,7 @@ function sendSMSCode() {
         contentType:'application/json',
         dataType:'json',
         success:function(resp){
+            generateImageCode()
             if (resp.errno == '0'){
                 var num = 60;
                 var t = setInterval(function() {
@@ -213,7 +214,6 @@ function sendSMSCode() {
             }
         }
     })
-
 }
 
 // 调用该函数模拟点击左侧按钮

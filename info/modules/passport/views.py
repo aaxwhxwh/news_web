@@ -5,11 +5,12 @@
 @file: views.py
 @time: 2018/08/11
 """
+from info.models import User
 from . import passport_blue
-from flask import request, jsonify, current_app, make_response
+from flask import request, jsonify, current_app, make_response, session
 from info.utils.response_code import RET
 from info.utils.captcha.captcha import captcha
-from info import redis_store
+from info import redis_store, db
 from info import constants
 from info.libs.yuntongxun import sms
 import random
@@ -48,8 +49,19 @@ def send_sms():
     image_code_id = request.json.get('image_code_id')
     if not all({mobile, image_code, image_code_id}):
         return jsonify(errno=RET.PARAMERR, errmsg='提交参数有误')
+
     if not re.match(r'1[3456789]\d{9}$',mobile):
         return jsonify(errno=RET.DATAERR, errmsg='手机号输入有误')
+
+    # 数据库查找用户信息，确认该手机号是否已注册
+    try:
+        find_user = User.query.filter(User.mobile == mobile).first()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取用户信息失败")
+
+    if find_user:
+        return jsonify(errno=RET.DATAEXIST, errmsg="用户已存在")
 
     try:
         redis_image_code = redis_store.get('ImageCode_'+image_code_id)
@@ -89,14 +101,83 @@ def send_sms():
         return jsonify(errno=RET.THIRDERR, errmsg='发送失败')
 
 
-'''
-发送短信验证码实现流程：
-        接收前端发送过来的请求参数
-        检查参数是否已经全部传过来
-        判断手机号格式是否正确
-        检查图片验证码是否正确，若不正确，则返回
-        删除图片验证码
-        生成随机的短信验证码
-        使用第三方SDK发送短信验证码
-:return:
-'''
+@passport_blue.route('/register', methods=["POST"])
+def register():
+
+    # 获取参数 mobile, smscode, password
+    mobile = request.json.get('mobile')
+    sms_code = request.json.get('smscode')
+    password = request.json.get('password')
+
+    # 判断文件是否不为空
+    if not all([mobile, sms_code, password]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数缺失")
+
+    # 判断手机号格式
+    if not re.match(r'1[3456789]\d{9}$',mobile):
+        return jsonify(errno=RET.PARAMERR, errmsg='手机号输入有误')
+
+    # 检查手机号是否已注册
+    try:
+         user = User.query.filter(User.mobile == mobile).first()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="查询用户失败")
+    else:
+        if user:
+            return jsonify(errno=RET.DATAEXIST, errmsg="手机号已注册")
+
+    # 获取redis中短信验证码
+    try:
+        redis_sms_code = redis_store.get('SMSCode_' + mobile)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="查询数据失败")
+
+    # 查询数据结果是否过期
+    if not redis_sms_code:
+        return jsonify(errno=RET.NODATA, errmsg="短信验证码已过期")
+
+    # 比较短信验证码是否正确
+    if redis_sms_code != sms_code:
+        return jsonify(errno=RET.DATAERR, errmsg="短信验证码错误")
+
+    # 删除已使用的短信验证码
+    try:
+        redis_store.delete('SMSCode_' + mobile)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    # 创建数据库模型对象，写入mysql数据库
+    user = User()
+    user.mobile = mobile
+    user.nick_name = mobile
+    # 调用密码加密模块
+    user.password = password
+    # 提交用户注册信息到mysql
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        # 提交异常，msyql操作回滚
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg="数据写入失败")
+
+    # 缓存用户信息
+    session['mobile'] = mobile
+    session['user_id'] = user.id
+    session['nick_name'] = mobile
+
+    # 返回成功信息
+    return jsonify(errno=RET.OK, errmsg="用户注册成功")
+
+
+@passport_blue.route('/login')
+def login():
+    pass
+
+
+@passport_blue.route('/logout')
+def logout():
+    pass

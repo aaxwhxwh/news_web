@@ -5,6 +5,8 @@
 @file: views.py
 @time: 2018/08/11
 """
+from datetime import datetime
+
 from info.models import User
 from . import passport_blue
 from flask import request, jsonify, current_app, make_response, session
@@ -173,11 +175,67 @@ def register():
     return jsonify(errno=RET.OK, errmsg="用户注册成功")
 
 
-@passport_blue.route('/login')
+@passport_blue.route('/login', methods=["POST"])
 def login():
-    pass
+    # 获取参数
+    mobile = request.json.get('mobile')
+    password = request.json.get('password')
+
+    # 检查参数是否完整
+    if not all([mobile, password]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数不完整")
+
+    # 判断手机号格式
+    if not re.match(r'1[3456789]\d{9}$', mobile):
+        return jsonify(errno=RET.PARAMERR, errmsg='手机号输入有误')
+
+    # 查询mysql确认用户是否注册
+    try:
+        user = User.query.filter_by(mobile=mobile).first()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据读取失败")
+
+    # # 判断查询的数据
+    # if not user:
+    #     return jsonify(errno=RET.NODATA, errmsg="用户名不存在")
+    #
+    # # 判断用户密码
+    # if user.check_password(password):
+    #     return jsonify(errno=RET.PWDERR, errmsg="密码错误")
+
+    # 判断用户名及密码
+    if user is None or not user.check_password(password):
+        return jsonify(errno=RET.DATAERR, errmsg="用户名或密码错误")
+
+    # 保存用户登陆时间
+    user.last_login = datetime.now()
+
+    # 提交数据
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        # 提交异常，msyql操作回滚
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg="数据写入失败")
+
+    # 写入状态信息
+    session['user_id'] = user.id
+    session['mobile'] = user.mobile
+    session['nick_name'] = user.nick_name
+
+    return jsonify(errno=RET.OK, errmsg="用户登陆成功")
 
 
 @passport_blue.route('/logout')
 def logout():
-    pass
+    session.pop('user_id', None)
+    session.pop('nici_name', None)
+    session.pop('mobile', None)
+
+    return  jsonify(errno=RET.OK, errmsg="退出登陆成功")
+
+
+

@@ -108,8 +108,26 @@ $(function(){
             $("#login-password-err").show();
             return;
         }
+        var params = {
+            "mobile": mobile,
+            "password": password
+        };
 
         // 发起登录请求
+        $.ajax({
+            url: '/login',
+            type: 'post',
+            data: JSON.stringify(params),
+            contentType: 'application/json',
+            success: function (resp) {
+                if(resp.errno == '0'){
+                    location.reload()
+                }else {
+                    $("#login-password-err").html(resp.errmsg);
+                    $("#login-password-err").show()
+                }
+            }
+        })
     })
 
 
@@ -142,8 +160,28 @@ $(function(){
             $("#register-password-err").show();
             return;
         }
+        var params = {
+		    "mobile": mobile,
+            "smscode": smscode,
+            "password": password
+        };
 
         // 发起注册请求
+        $.ajax({
+            url: '/register',
+            type: 'post',
+            data: JSON.stringify(params),
+            contentType: 'application/json',
+            dataType: 'json',
+            success: function (resp) {
+                if(resp.errno == '0'){
+                    location.reload()
+                }else{
+                    $("#register-password-err").html(resp.errmsg);
+                    $("#register-password-err").show();
+                }
+            }
+        })
 
     })
 })
@@ -249,4 +287,11 @@ function generateUUID() {
         return (c=='x' ? r : (r&0x3|0x8)).toString(16);
     });
     return uuid;
+}
+
+// 退出登陆
+function logout() {
+    $.get('/logout', function () {
+        location.reload()
+    })
 }

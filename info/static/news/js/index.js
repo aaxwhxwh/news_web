@@ -1,10 +1,11 @@
 var currentCid = 1; // 当前分类 id
 var cur_page = 1; // 当前页
 var total_page = 1;  // 总页数
-var data_querying = true;   // 是否正在向后台获取数据
-
+var data_querying = false;   // 是否正在向后台获取数据
 
 $(function () {
+    // 页面初次加载时请求新闻
+    updateNewsData()
     // 首页分类切换
     $('.menu li').click(function () {
         var clickCid = $(this).attr('data-cid')
@@ -18,8 +19,8 @@ $(function () {
             currentCid = clickCid
 
             // 重置分页参数
-            cur_page = 1
-            total_page = 1
+            cur_page = 1;
+            total_page = 1;
             updateNewsData()
         }
     })
@@ -40,11 +41,57 @@ $(function () {
         var nowScroll = $(document).scrollTop();
 
         if ((canScrollHeight - nowScroll) < 100) {
-            // TODO 判断页数，去更新新闻数据
+            if (!data_querying){
+                data_querying = true;
+                // TODO 判断页数，去更新新闻数据
+                if (cur_page < total_page){
+                    cur_page += 1;
+                    updateNewsData()
+                }
+            }
+
         }
     })
-})
+});
 
 function updateNewsData() {
     // TODO 更新新闻数据
+    var params = {
+        "category_id": currentCid,
+        "current_page": cur_page
+    };
+    $.ajax({
+      url: '/news',
+      type: 'get',
+      data: params,
+      success: function (resp) {
+          data_querying = false;
+          if (resp.errno == '0'){
+              total_page = resp.data.total_page;
+              if (cur_page == 1){
+                  $('.list_con').html("")
+              }
+              var news_lst = resp.data.news_list;
+              for (var i = 0;i<news_lst.length;i++){
+                  var news = news_lst[i]
+                  var content ='<li>';
+                  content += '<a href="/news/' + news.id + '" class="news_pic fl"><img src="' + news.index_image_url + '"></a>';
+                  content += '<a href="/news/' + news.id + '" class="news_title fl">' + news.title + '</a>';
+                  content += '<a href="/news/' + news.id + '" class="news_detail fl">' + news.digest + '</a>';
+                  content += '<div class="author_info fl">';
+                  content += '<div class="author fl">';
+                  content += '<img src="../../static/news/images/person.png" alt="author">';
+                  content += '<a href="#">' + news.source +'</a>';
+                  content += '</div>';
+                  content += '<div class="time fl">' +news.create_time+ '</div>';
+                  content += '</div>';
+                  content += '</li>'
+                  $('.list_con').append(content)
+              }
+
+          }else{
+              alert(resp.errmsg)
+          }
+      }
+    })
 }

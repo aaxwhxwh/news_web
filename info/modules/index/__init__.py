@@ -3,10 +3,10 @@
 """
 @author:will
 @file: __init__.py.py
-@time: 2018/08/14
+@time: 2018/08/08
 """
 from flask import Blueprint
 
-news_blue = Blueprint('news_blue', __name__, url_prefix="/news")
+index_blue = Blueprint('index_blue', __name__)
 
 from . import views

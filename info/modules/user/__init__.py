@@ -7,6 +7,6 @@
 """
 from flask import Blueprint
 
-news_blue = Blueprint('news_blue', __name__, url_prefix="/news")
+user_blue = Blueprint('user_blue', __name__, url_prefix='/user')
 
 from . import views

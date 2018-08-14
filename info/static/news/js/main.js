@@ -115,9 +115,12 @@ $(function(){
 
         // 发起登录请求
         $.ajax({
-            url: '/login',
+            url: '/passport/login',
             type: 'post',
             data: JSON.stringify(params),
+            headers: {
+                "X-CSRFToken": getCookie("csrf_token")
+            },
             contentType: 'application/json',
             success: function (resp) {
                 if(resp.errno == '0'){
@@ -131,7 +134,7 @@ $(function(){
     })
 
 
-    // TODO 注册按钮点击
+    // 注册按钮点击
     $(".register_form_con").submit(function (e) {
         // 阻止默认提交操作
         e.preventDefault()
@@ -168,9 +171,12 @@ $(function(){
 
         // 发起注册请求
         $.ajax({
-            url: '/register',
+            url: '/passport/register',
             type: 'post',
             data: JSON.stringify(params),
+            headers: {
+                "X-CSRFToken": getCookie("csrf_token")
+            },
             contentType: 'application/json',
             dataType: 'json',
             success: function (resp) {
@@ -226,9 +232,12 @@ function sendSMSCode() {
     };
     // 发送ajax请求
     $.ajax({
-        url:'/sms_code',
+        url:'/passport/sms_code',
         type:'post',
         data:JSON.stringify(params),
+        headers: {
+            "X-CSRFToken": getCookie("csrf_token")
+        },
         contentType:'application/json',
         dataType:'json',
         success:function(resp){
@@ -291,7 +300,14 @@ function generateUUID() {
 
 // 退出登陆
 function logout() {
-    $.get('/logout', function () {
-        location.reload()
-    })
+    $.ajax({
+        url: '/passport/logout',
+        type: 'delete',
+        headers: {
+            "X-CSRFToken": getCookie("csrf_token")
+        },
+        success: function (resp) {
+            location.reload()
+        }
+    });
 }

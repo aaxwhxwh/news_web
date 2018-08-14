@@ -229,13 +229,13 @@ def login():
     return jsonify(errno=RET.OK, errmsg="用户登陆成功")
 
 
-@passport_blue.route('/logout')
+@passport_blue.route('/logout', methods=["DELETE"])
 def logout():
     session.pop('user_id', None)
-    session.pop('nici_name', None)
+    session.pop('nick_name', None)
     session.pop('mobile', None)
 
-    return  jsonify(errno=RET.OK, errmsg="退出登陆成功")
+    return jsonify(errno=RET.OK, errmsg="退出登陆成功")
 
 
 

@@ -12,6 +12,7 @@ from flask_session import Session
 import logging
 from logging.handlers import RotatingFileHandler
 from redis import StrictRedis
+from flask_wtf import CSRFProtect,csrf
 
 
 # 日志文件设置
@@ -32,11 +33,31 @@ redis_store = StrictRedis(host=Config.HOST, port=Config.PORT, decode_responses=T
 
 def create_app(config_name):
     app = Flask(__name__)
+
+    CSRFProtect(app)
+    # 加载配制
     app.config.from_object(config[config_name])
+
     Session(app)
     db.init_app(app)
+
+    @app.after_request
+    def after_request(resp):
+        csrf_token = csrf.generate_csrf()
+        resp.set_cookie('csrf_token', csrf_token)
+        return resp
+
+    from info.utils.commons import index_class
+    app.add_template_filter(index_class, 'index_class')
+
+    # 注册蓝图
+    from info.modules.index import index_blue
+    app.register_blueprint(index_blue)
+    from info.modules.passport import passport_blue
+    app.register_blueprint(passport_blue, url_prefix="/passport")
     from info.modules.news import news_blue
     app.register_blueprint(news_blue)
-    from info.modules.passport import passport_blue
-    app.register_blueprint(passport_blue)
+    from info.modules.user import user_blue
+    app.register_blueprint(user_blue)
+
     return app

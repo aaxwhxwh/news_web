@@ -27,7 +27,7 @@ def index_class(index):
 def login_status(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        user_id = session['user_id']
+        user_id = session.get('user_id')
         user = None
         if user_id:
             try:

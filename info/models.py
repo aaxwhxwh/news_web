@@ -159,7 +159,7 @@ class Comment(BaseModel, db.Model):
     news_id = db.Column(db.Integer, db.ForeignKey("info_news.id"), nullable=False)  # 新闻id
     content = db.Column(db.Text, nullable=False)  # 评论内容
     parent_id = db.Column(db.Integer, db.ForeignKey("info_comment.id"))  # 父评论id
-    parent = db.relationship("Comment", remote_side=[id])  # 自关联
+    parent = db.relationship("Comment", remote_side=[id], backref=db.backref('childs', lazy='dynamic'))  # 自关联
     like_count = db.Column(db.Integer, default=0)  # 点赞条数
 
     def to_dict(self):

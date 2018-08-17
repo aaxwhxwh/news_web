@@ -199,7 +199,7 @@ function generateImageCode() {
     // 生成uuid
     imageCodeId = generateUUID();
     // 拼接url路径，把uuid放入url中作为参数传入后端
-    var url = '/image_code?image_code_id=' + imageCodeId;
+    var url = '/passport/image_code?image_code_id=' + imageCodeId;
     // 设置img的src属性
     $('.get_pic_code').attr('src',url);
 }

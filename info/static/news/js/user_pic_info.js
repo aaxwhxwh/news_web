@@ -15,11 +15,11 @@ $(function () {
         }else {
             //TODO 上传头像
             $.ajax({
-                url: '/user_pic_info.html',
+                url: '/user/user_pic_info.html',
                 type: 'post',
                 data: data,
                 headers: {
-                    "X-CSRFToken": getCookie("csrf-token")
+                    "X-CSRFToken": getCookie("csrf_token")
                 },
                 cache: false,
                 processData: false,
@@ -27,6 +27,8 @@ $(function () {
                 success: function (resp) {
                     if(resp.errno == '0'){
                         top.location.reload()
+                    }else{
+                        alert()
                     }
                 }
             })

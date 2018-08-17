@@ -12,11 +12,11 @@ $(function () {
         $('.menu li').each(function () {
             $(this).removeClass('active')
         })
-        $(this).addClass('active')
+        $(this).addClass('active');
 
         if (clickCid != currentCid) {
             // 记录当前分类id
-            currentCid = clickCid
+            currentCid = clickCid;
 
             // 重置分页参数
             cur_page = 1;
@@ -73,7 +73,7 @@ function updateNewsData() {
               }
               var news_lst = resp.data.news_list;
               for (var i = 0;i<news_lst.length;i++){
-                  var news = news_lst[i]
+                  var news = news_lst[i];
                   var content ='<li>';
                   content += '<a href="/news/' + news.id + '" class="news_pic fl"><img src="' + news.index_image_url + '"></a>';
                   content += '<a href="/news/' + news.id + '" class="news_title fl">' + news.title + '</a>';

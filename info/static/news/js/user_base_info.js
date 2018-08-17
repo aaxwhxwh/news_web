@@ -27,17 +27,21 @@ $(function () {
             "signature": signature
         };
         $.ajax({
-            url: "/user_base_info.html",
+            url: "/user/user_base_info.html",
             type: 'post',
             data: JSON.stringify(params),
             headers: {
-              "X-CSRFToken": getCookie("csrf-token")
+              "X-CSRFToken": getCookie("csrf_token")
             },
             contentType: 'application/json',
             dataType: 'json',
             success: function (resp) {
                 if(resp.errno == '0') {
-                    top.location.reload()
+                    $('.user_center_name', parent.document).html(params['nick_name'])
+                    $('#nick_name', parent.document).html(params['nick_name'])
+                    $('.input_sub').blur()
+                }else{
+                    alert(resp.errmsg)
                 }
             }
         })

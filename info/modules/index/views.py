@@ -33,7 +33,7 @@ def index():
         news_click_list.append(new.to_dict())
 
     # 判断登陆状态，返回已登陆的用户信息
-    user = None
+    user_info = None
     if user_id:
         try:
             user = User.query.get(user_id)
@@ -41,14 +41,13 @@ def index():
             current_app.logger.error(e)
             return jsonify(errno=RET.DBERR, errmsg="数据获取失败")
 
-    user_info = user.to_dict()
+        user_info = user.to_dict()
 
     # 获取新闻类目信息
     news_category = Category.query.filter().all()
     category_list = []
     for category in news_category:
         category_list.append(category.to_dict())
-
 
     # 整理并返回数据
     data = {

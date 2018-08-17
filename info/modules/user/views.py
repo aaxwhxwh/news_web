@@ -6,11 +6,10 @@
 @time: 2018/08/12
 """
 import random
-from datetime import datetime
-from flask import render_template, session, current_app, request, jsonify, make_response
+from flask import render_template, session, current_app, request, jsonify, make_response, url_for, redirect, g
 
 from info import db
-from info.models import User
+from info.models import User, Category, News
 from info.utils.commons import login_status
 from info.utils.response_code import RET
 from . import user_blue
@@ -20,85 +19,66 @@ from . import user_blue
 @login_status
 def user_index():
 
-    mobile = session.get('mobile')
+    user = g.user
 
-    try:
-        user = User.query.filter_by(mobile=mobile).first()
-    except Exception as e:
-        current_app.logger.error(e)
-        return jsonify(errno=RET.DBERR, errmsg="数据库读取错误")
+    if not user:
+        return redirect('/')
 
     user_pic = user.avatar_url if user.avatar_url else '../../static/news/images/user_pic.png'
 
-    # 获取当前用户session信息
-    user_id = session.get('user_id')
+    data = {
+        "user": user.to_dict(),
+        "user_pic": user_pic
+    }
 
-    # 查询该用户信息
-    user = None
-    if user_id:
-        try:
-            user = User.query.get(user_id)
-        except Exception as e:
-            current_app.logger.error(e)
-    return render_template('news/user.html', data={"user_info": user.to_dict() if user else None}, user_pic=user_pic)
+    return render_template('news/user.html', data=data)
 
 
 @user_blue.route('/user_base_info.html', methods=["POST", "GET"])
+@login_status
 def user_base_info():
-    if request.method == 'POST':
-        nick_name = request.json.get('nick_name')
-        gender = request.json.get('gender')
-        signature = request.json.get('signature')
-        if not all([nick_name, gender, signature]):
-            return jsonify(errno=RET.NODATA, errmsg="信息输入不能为空")
+    user = g.user
 
-        try:
-            find_user = User.query.filter_by(nick_name=nick_name).first()
-        except Exception as e:
-            current_app.logger.error(e)
-            return jsonify(errno=RET.DBERR, errmsg="获取信息失败")
-        if find_user:
-            return jsonify(errno=RET.DATAEXIST, errmsg="改昵称已被占用")
+    if request.method == "GET":
+        return render_template('news/user_base_info.html', data=user.to_dict())
 
-        # 获取当前用户session信息
-        user_id = session.get('user_id')
+    nick_name = request.json.get('nick_name')
+    gender = request.json.get('gender')
+    signature = request.json.get('signature')
+    if not all([nick_name, gender, signature]):
+        return jsonify(errno=RET.NODATA, errmsg="信息输入不能为空")
 
-        # 查询该用户信息
-        user = None
-        if user_id:
-            try:
-                user = User.query.get(user_id)
-            except Exception as e:
-                current_app.logger.error(e)
-        user.nick_name = nick_name
-        user.gender = gender
-        user.signature = signature
-        user.update_time = datetime.now()
+    if gender not in ["MAN", "WOMEN"]:
+        return jsonify(errno=RET.DATAERR, errmsg="参数格式错误")
 
-        try:
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(e)
-            return jsonify(errno=RET.DBERR, errmsg="数据库写入错误")
+    try:
+        find_user = User.query.filter_by(nick_name=nick_name).first()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取信息失败")
+    if find_user:
+        return jsonify(errno=RET.DATAEXIST, errmsg="改昵称已被占用")
 
-        session['nick_name'] = nick_name
+    user.nick_name = nick_name
+    user.gender = gender
+    user.signature = signature
 
-        return jsonify(errno=RET.OK, errmsg="个人信息修改成功")
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据库写入错误")
 
-    return render_template('news/user_base_info.html')
+    session['nick_name'] = nick_name
+
+    return jsonify(errno=RET.OK, errmsg="个人信息修改成功")
 
 
 @user_blue.route('/user_pic_info.html', methods=["POST", "GET"])
+@login_status
 def user_pic_info():
-    mobile = session.get('mobile')
-
-    try:
-        user = User.query.filter_by(mobile=mobile).first()
-    except Exception as e:
-        current_app.logger.error(e)
-        return jsonify(errno=RET.DBERR, errmsg="数据库读取错误")
-
+    user = g.user
     user_pic = user.avatar_url if user.avatar_url else '../../static/news/images/user_pic.png'
 
     if request.method == "POST":
@@ -116,37 +96,78 @@ def user_pic_info():
         user.avatar_url = '../../static/news/images/user_pic/user_pic_' + num + '.png'
 
         try:
-            db.session.add(user)
             db.session.commit()
         except Exception as e:
             current_app.logger.error(e)
             return jsonify(errno=RET.DBERR, errmsg="数据库写入错误")
 
-        return jsonify(errno=RET.OK)
+        return jsonify(errno=RET.OK, user_pic=user_pic)
     return render_template('news/user_pic_info.html', user_pic=user_pic)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-@user_blue.route('/user_collection.html')
+@user_blue.route('/user_collection.html', methods=["GET", "POST"])
+@login_status
 def user_collection():
-    return render_template('news/user_collection.html')
+
+    if request.method == 'GET':
+        return render_template('news/user_collection.html')
+
+    user = g.user
+    if not user:
+        return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
+
+    author_id = request.json.get('author_id')
+    action = request.json.get('action')
+
+    if not all([author_id, action]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数输入不完整")
+
+    if action not in ["focus", "cancel_focus"]:
+        return jsonify(errno=RET.DATAERR, errmsg="参数格式错误")
+
+    try:
+        author = User.query.get(author_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据库读取错误")
+
+    if not author:
+        return jsonify(errno=RET.NODATA, errmsg="用户不存在")
+
+    if action == "focus":
+        if author not in user.followers:
+            user.followers.append(author)
+    else:
+        user.followers.remove(author)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据库写入失败")
+
+    return jsonify(errno=RET.OK, errmsg="关注成功")
 
 
-@user_blue.route('/user_follow.html')
+@user_blue.route('/user_follow.html', methods=["GET", "DELETE"])
+@login_status
 def user_follow():
-    return render_template('news/user_follow.html')
+
+    user = g.user
+
+    try:
+        follower = user.followers.all()
+        print(follower)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+
+    if request.method == "DELETE":
+        followed_name = request.args.get('followed_name')
+
+    # TODO 删除关注
+
+    return render_template('news/user_follow.html', followers=follower)
 
 
 @user_blue.route('/user_news_list.html')
@@ -154,13 +175,116 @@ def user_news_list():
     return render_template('news/user_news_list.html')
 
 
-@user_blue.route('/user_news_release.html')
+@user_blue.route('/user_news_release.html', methods=["GET", "POST"])
+@login_status
 def user_news_release():
-    return render_template('news/user_news_release.html')
+
+    user = g.user
+
+    if not user:
+        return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
+
+    if request.method == "GET":
+
+        try:
+            categories = Category.query.all()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据库读取错误")
+
+        if not categories:
+            return jsonify(errno=RET.NODATA, errmsg="无新闻分类")
+
+        category_list = []
+        for category in categories:
+            category_list.append(category.to_dict())
+
+        category_list.pop(0)
+        data = {
+            "category_list": category_list
+        }
+        return render_template('news/user_news_release.html', data=data)
+
+    title = request.form.get('title')
+    digest = request.form.get('digest')
+    category_id = request.form.get('category_id')
+    content = request.form.get('content')
+    index_image = request.files.get('index_image')
+
+    if not all([title, digest, category_id, content, index_image]):
+        return jsonify(errno=RET.PARAMERR, errmsg="提交参数缺失")
+
+    num = random_string()
+    try:
+        index_image.save('./info/static/news/images/index/index' + num + '.png')
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.IOERR, errmsg="文件保存错误")
+
+    # # 读取图片数据
+    # try:
+    #     image_data = index_image.read()
+    # except Exception as e:
+    #     current_app.logger.error(e)
+    #     return jsonify(errno=RET.DATAERR, errmsg="参数格式错误")
+
+    # try:
+    #     image_name = storage(image_data)
+    # except Exception as e:
+    #     current_app.logger.error(e)
+    #     return jsonify(errno=RET.THIRDERR, errmsg="上传图片失败")
+
+    news = News()
+    news.title = title
+    news.digest = digest
+    news.category_id = category_id
+    news.content = content
+    # news.index_image_url = constants.QINIU... + image_name
+    news.index_image_url = './info/static/news/images/index/index' + num + '.png'
+
+    news.user_id = user.id
+    news.source = '用户发布'
+    news.status = 0
+
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg="数据库存储失败")
+
+    return jsonify(errno=RET.OK, errmsg="新闻已提交")
 
 
-@user_blue.route('/user_pass_info.html')
+@user_blue.route('/user_pass_info.html', methods=["POST", "GET"])
+@login_status
 def user_pass_info():
+
+    if request.method == 'POST':
+        old_passwd = request.json.get('old_passwd')
+        new_passwd = request.json.get('new_passwd')
+
+        # 判断不为空
+        if not all([old_passwd, new_passwd]):
+            return jsonify(errno=RET.PARAMERR, errmsg="密码输入不能为空")
+
+        user = g.user
+
+        if not user.check_password(old_passwd):
+            return jsonify(errno=RET.PWDERR, errmsg="密码输入错误")
+
+        user.password = new_passwd
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据库存储失败")
+
+        return jsonify(errno=RET.OK, errmsg="密码修改成功")
+
     return render_template('news/user_pass_info.html')
 
 

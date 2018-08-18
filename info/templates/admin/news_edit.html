@@ -27,14 +27,18 @@
 					<th width="15%">发布时间</th>
 					<th width="10%">管理操作</th>
 				</tr>
-				<tr>
-					<td>1</td>
-					<td class="tleft">日本史上最大IPO之一要来了：软银计划将手机业务分拆上市</td>
-					<td>2018-3-5 21:39:05</td>
-					<td>
-						<a href="news_edit_detail.html" class="edit">编辑</a>
-					</td>
-				</tr>
+                {% for new in data.news_list %}
+                    <tr>
+                        <td>{{ new.id }}</td>
+                        <td class="tleft">{{ new.title }}</td>
+                        <td>{{ new.create_time }}</td>
+                        <td>
+                            <a href="/admin/news_edit_detail/{{ new.id }}" class="edit">编辑</a>
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
 				<tr>
 					<td>2</td>
 					<td class="tleft">日本史上最大IPO之一要来了：软银计划将手机业务分拆上市</td>
@@ -117,10 +121,10 @@
         <script>
 			$(function() {
 				$("#pagination").pagination({
-					currentPage: 2,
-					totalPage: 3,
+					currentPage: {{ data.current_page }},
+					totalPage: {{ data.total_page }},
 					callback: function(current) {
-					    alert('ok!');
+					    window.location.href = '/admin/news_detail?page='+current;
 					}
 				});
 			});

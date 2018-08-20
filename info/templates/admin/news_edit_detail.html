@@ -24,7 +24,7 @@
 	    	</div>
 	    	<div class="form_group">
                 <label>新闻分类：</label>
-                <select class="sel_opt" >
+                <select class="sel_opt" name="category_id">
                     {% for category in data.category_list %}
                         <option value="{{ category.id }}" {% if data.new.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
 
@@ -34,7 +34,7 @@
 			</div>
 			<div class="form_group">
 				<label>新闻摘要：</label>
-				<textarea class="input_multxt">{{ data.new.digest }}</textarea>
+				<textarea class="input_multxt" name="digest">{{ data.new.digest }}</textarea>
 			</div>
 			<div class="form_group">
 				<label>索引图片：</label>
@@ -42,18 +42,19 @@
 			</div>
 			<div class="form_group">
 				<label>上传图片：</label>
-				<input type="file" class="input_file">
+				<input type="file" class="input_file" name="index_image_url">
 			</div>
 			<div class="form_group">
 				<label>新闻内容：</label>
 				<div class="rich_wrap fl">
-					<input class="input_area" id="rich_content" name="content" value="{{ data.new.content }}"></input>
+					<input class="input_area" id="rich_content" name="content" value="{{ data.new.content }}">
 				</div>
 			</div>
 			<div class="form_group indent_group line_top">
 				<input type="submit" value="确定" class="confirm">
 				<input type="button" value="取消" class="cancel" onclick="cancel()">
 			</div>
+                <input type="text" name="news_id" value="{{ data.new.id }}" hidden>
 			</form>	
 		</div>
 

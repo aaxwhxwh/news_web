@@ -225,7 +225,7 @@ $(function(){
             "action": action
         }
         $.ajax({
-            url: '/user/user_collection.html',
+            url: '/user/user_follow.html',
             type: 'post',
             data: JSON.stringify(params),
             headers: {
@@ -252,7 +252,7 @@ $(function(){
             "action": action
         }
         $.ajax({
-            url: '/user/user_collection.html',
+            url: '/user/user_follow.html',
             type: 'post',
             data: JSON.stringify(params),
             headers: {

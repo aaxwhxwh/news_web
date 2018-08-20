@@ -68,6 +68,21 @@ $(function(){
         }
 
         // TODO 发起修改分类请求
-
+        $.ajax({
+            url: '/admin/news_type',
+            type: 'post',
+            data: JSON.stringify(params),
+            contentType: 'application/json',
+            headers: {
+                "X-CSRFToken": getCookie('csrf_token')
+            },
+            success: function (resp) {
+                if (resp.errno == '0'){
+                    location.reload(location.href);
+                }else{
+                    $error.html(resp.errmsg).show();
+                }
+            }
+        })
     })
 })

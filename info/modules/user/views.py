@@ -8,7 +8,7 @@
 import random
 from flask import render_template, session, current_app, request, jsonify, make_response, url_for, redirect, g
 
-from info import db
+from info import db, constants
 from info.models import User, Category, News
 from info.utils.commons import login_status
 from info.utils.response_code import RET
@@ -105,16 +105,77 @@ def user_pic_info():
     return render_template('news/user_pic_info.html', user_pic=user_pic)
 
 
-@user_blue.route('/user_collection.html', methods=["GET", "POST"])
+@user_blue.route('/user_collection.html', methods=["GET"])
 @login_status
 def user_collection():
-
-    if request.method == 'GET':
-        return render_template('news/user_collection.html')
 
     user = g.user
     if not user:
         return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
+
+    current_page = request.args.get('p', '1')
+
+    try:
+        current_page = int(current_page)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DATAERR, errmsg="请求格式错误")
+
+    try:
+        paginate = user.collection_news.paginate(current_page, constants.USER_COLLECTION_MAX_NEWS, False)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+
+    total_page = paginate.pages
+    current_page = paginate.page
+    news = paginate.items
+    print(news)
+
+    news_list = []
+    for new in news:
+        news_list.append(new)
+
+    data = {
+        "news_list": news_list,
+        "total_page": total_page,
+        "current_page": current_page
+    }
+    return render_template('news/user_collection.html', data=data)
+
+
+@user_blue.route('/user_follow.html', methods=["GET", "POST"])
+@login_status
+def user_follow():
+
+    user = g.user
+
+    if request.method == "GET":
+        cur_page = request.args.get('page')
+
+        try:
+            paginate = user.followers.paginate(cur_page, constants.USER_FOLLOWED_MAX_COUNT, False)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+
+        total_pages = paginate.pages
+        cur_page = paginate.page
+        followers = paginate.items
+
+        follower_list = []
+        for follower in followers:
+            follower_list.append(follower.to_dict())
+
+        print(follower_list)
+
+        data = {
+            "total_page": total_pages,
+            "cur_page": cur_page,
+            "follower_list": follower_list
+        }
+
+        return render_template('news/user_follow.html', data=data)
 
     author_id = request.json.get('author_id')
     action = request.json.get('action')
@@ -149,30 +210,42 @@ def user_collection():
     return jsonify(errno=RET.OK, errmsg="关注成功")
 
 
-@user_blue.route('/user_follow.html', methods=["GET", "DELETE"])
+@user_blue.route('/user_news_list.html')
 @login_status
-def user_follow():
+def user_news_list():
 
     user = g.user
+    if not user:
+        return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
+
+    cur_page = request.args.get('page', '1')
 
     try:
-        follower = user.followers.all()
-        print(follower)
+        cur_page = int(cur_page)
     except Exception as e:
-        current_app.logger.error(e)
-        return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+        cur_page.logger.error(e)
+        return jsonify(errno=RET.DATAERR, errmsg="请求参数格式错误")
 
-    if request.method == "DELETE":
-        followed_name = request.args.get('followed_name')
+    try:
+        paginate = user.news_list.paginate(cur_page, constants.USER_FOLLOWED_MAX_COUNT, False)
+    except Exception as e:
+        cur_page.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="请求参数格式错误")
 
-    # TODO 删除关注
+    total_page = paginate.pages
+    cur_page = paginate.page
+    news = paginate.items
 
-    return render_template('news/user_follow.html', followers=follower)
+    news_list = []
+    for new in news:
+        news_list.append(new)
 
-
-@user_blue.route('/user_news_list.html')
-def user_news_list():
-    return render_template('news/user_news_list.html')
+    data = {
+        "news_list": news_list,
+        "total_page": total_page,
+        "cur_page": cur_page
+    }
+    return render_template('news/user_news_list.html', data=data)
 
 
 @user_blue.route('/user_news_release.html', methods=["GET", "POST"])
@@ -185,6 +258,15 @@ def user_news_release():
         return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
 
     if request.method == "GET":
+
+        news_id = request.args.get('news_id')
+        news = None
+        if news_id:
+            try:
+                news = News.query.get(news_id)
+            except Exception as e:
+                current_app.logger.error(e)
+                return jsonify(errno=RET.DBERR, errmsg="数据库读取错误")
 
         try:
             categories = Category.query.all()
@@ -201,7 +283,8 @@ def user_news_release():
 
         category_list.pop(0)
         data = {
-            "category_list": category_list
+            "category_list": category_list,
+            "news": news
         }
         return render_template('news/user_news_release.html', data=data)
 

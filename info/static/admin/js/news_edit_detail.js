@@ -7,22 +7,26 @@ $(function(){
     $(".news_edit").submit(function (e) {
         e.preventDefault()
         // TODO 新闻编辑提交
-        var news_id = $('.input_txt2').attr('news_id')
-        var data = new FormData($('.form-group'))
-        console.log(data)
-        $.ajax({
-            url: '/admin/news_edit_detail/'+news_id,
+        $(this).ajaxSubmit({
+           beforeSubmit: function (request) {
+                // 在提交之前，对参数进行处理
+                for(var i=0; i<request.length; i++) {
+                    var item = request[i]
+                    if (item["name"] == "content") {
+                        item["value"] = tinyMCE.activeEditor.getContent()
+                    }
+                }
+            },
+            url: '/admin/news_edit_detail',
             type: 'post',
-            data: data,
             headers: {
                 "X-CSRFToken": getCookie("csrf_token")
             },
-            cache: false,
-            processData: false,
-            contentType: false,
             success: function (resp) {
                 if (resp.errno == '0'){
-                    window.location.href = '/admin/news_edit'
+                    location.href = document.referrer;
+                }else{
+                    alert(resp.errmsg)
                 }
             }
         })

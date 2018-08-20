@@ -13,54 +13,54 @@
 <body class="inframe_body">
         <h3 class="common_title">我的关注</h3>
         <ul class="card_list_con">
-            {% for follower in followers %}
-             <li class="author_card card_list">
+            {% for follower in data.follower_list %}
+             <li class="author_card card_list" user_id="{{ follower.id }}">
                 <a href="#" target="_blank" class="author_pic"><img src="{% if follower %}{{ follower.avatar_url }}{% else %}../../static/news/images/cat.jpg{% endif %}" alt="author_pic"></a>
                 <a href="#" target="_blank" class="author_name">{{ follower.nick_name }}</a>
                 <div class="author_resume">{{ follower.nick_name }}的简介,{{ follower.nick_name }}</div>
-                <div class="writings"><span>总篇数</span><b>23</b></div>
-                <div class="follows"><span>粉丝</span><b>36</b></div>
-                <a href="javascript:;" class="focus fr">关注</a>
+                <div class="writings"><span>总篇数</span><b>{{ follower.news_list }}</b></div>
+                <div class="follows"><span>粉丝</span><b>{{ follower.follower }}</b></div>
+{#                <a href="javascript:;" class="focus fr">关注</a>#}
                 <a href="javascript:;" class="focused fr"><span class="out">已关注</span><span class="over">取消关注</span></a>
             </li>
             {% endfor %}
 
-            <li class="author_card card_list">
-                <a href="#" target="_blank" class="author_pic"><img src="../../static/news/images/cat.jpg" alt="author_pic"></a>
-                <a href="#" target="_blank" class="author_name">张大山</a>
-                <div class="author_resume">张大山的简介,张大山</div>
-                <div class="writings"><span>总篇数</span><b>23</b></div>
-                <div class="follows"><span>粉丝</span><b>36</b></div>
-                <a href="javascript:;" class="focus fr">关注</a>
-                <a href="javascript:;" class="focused fr"><span class="out">已关注</span><span class="over">取消关注</span></a>
-            </li>
-            <li class="author_card card_list">
-                <a href="#" target="_blank" class="author_pic"><img src="../../static/news/images/cat.jpg" alt="author_pic"></a>
-                <a href="#" target="_blank" class="author_name">张大山</a>
-                <div class="author_resume">张大山的简介,张大山</div>
-                <div class="writings"><span>总篇数</span><b>23</b></div>
-                <div class="follows"><span>粉丝</span><b>36</b></div>
-                <a href="javascript:;" class="focus fr">关注</a>
-                <a href="javascript:;" class="focused fr"><span class="out">已关注</span><span class="over">取消关注</span></a>
-            </li>
-            <li class="author_card card_list">
-                <a href="#" target="_blank" class="author_pic"><img src="../../static/news/images/cat.jpg" alt="author_pic"></a>
-                <a href="#" target="_blank" class="author_name">张大山</a>
-                <div class="author_resume">张大山的简介,张大山</div>
-                <div class="writings"><span>总篇数</span><b>23</b></div>
-                <div class="follows"><span>粉丝</span><b>36</b></div>
-                <a href="javascript:;" class="focus fr">关注</a>
-                <a href="javascript:;" class="focused fr"><span class="out">已关注</span><span class="over">取消关注</span></a>
-            </li>
-            <li class="author_card card_list">
-                <a href="#" target="_blank" class="author_pic"><img src="../../static/news/images/cat.jpg" alt="author_pic"></a>
-                <a href="#" target="_blank" class="author_name">张大山</a>
-                <div class="author_resume">张大山的简介,张大山</div>
-                <div class="writings"><span>总篇数</span><b>23</b></div>
-                <div class="follows"><span>粉丝</span><b>36</b></div>
-                <a href="javascript:;" class="focus fr">关注</a>
-                <a href="javascript:;" class="focused fr"><span class="out">已关注</span><span class="over">取消关注</span></a>
-            </li>
+{#            <li class="author_card card_list">#}
+{#                <a href="#" target="_blank" class="author_pic"><img src="../../static/news/images/cat.jpg" alt="author_pic"></a>#}
+{#                <a href="#" target="_blank" class="author_name">张大山</a>#}
+{#                <div class="author_resume">张大山的简介,张大山</div>#}
+{#                <div class="writings"><span>总篇数</span><b>23</b></div>#}
+{#                <div class="follows"><span>粉丝</span><b>36</b></div>#}
+{#                <a href="javascript:;" class="focus fr">关注</a>#}
+{#                <a href="javascript:;" class="focused fr"><span class="out">已关注</span><span class="over">取消关注</span></a>#}
+{#            </li>#}
+{#            <li class="author_card card_list">#}
+{#                <a href="#" target="_blank" class="author_pic"><img src="../../static/news/images/cat.jpg" alt="author_pic"></a>#}
+{#                <a href="#" target="_blank" class="author_name">张大山</a>#}
+{#                <div class="author_resume">张大山的简介,张大山</div>#}
+{#                <div class="writings"><span>总篇数</span><b>23</b></div>#}
+{#                <div class="follows"><span>粉丝</span><b>36</b></div>#}
+{#                <a href="javascript:;" class="focus fr">关注</a>#}
+{#                <a href="javascript:;" class="focused fr"><span class="out">已关注</span><span class="over">取消关注</span></a>#}
+{#            </li>#}
+{#            <li class="author_card card_list">#}
+{#                <a href="#" target="_blank" class="author_pic"><img src="../../static/news/images/cat.jpg" alt="author_pic"></a>#}
+{#                <a href="#" target="_blank" class="author_name">张大山</a>#}
+{#                <div class="author_resume">张大山的简介,张大山</div>#}
+{#                <div class="writings"><span>总篇数</span><b>23</b></div>#}
+{#                <div class="follows"><span>粉丝</span><b>36</b></div>#}
+{#                <a href="javascript:;" class="focus fr">关注</a>#}
+{#                <a href="javascript:;" class="focused fr"><span class="out">已关注</span><span class="over">取消关注</span></a>#}
+{#            </li>#}
+{#            <li class="author_card card_list">#}
+{#                <a href="#" target="_blank" class="author_pic"><img src="../../static/news/images/cat.jpg" alt="author_pic"></a>#}
+{#                <a href="#" target="_blank" class="author_name">张大山</a>#}
+{#                <div class="author_resume">张大山的简介,张大山</div>#}
+{#                <div class="writings"><span>总篇数</span><b>23</b></div>#}
+{#                <div class="follows"><span>粉丝</span><b>36</b></div>#}
+{#                <a href="javascript:;" class="focus fr">关注</a>#}
+{#                <a href="javascript:;" class="focused fr"><span class="out">已关注</span><span class="over">取消关注</span></a>#}
+{#            </li>#}
         </ul>
         
         
@@ -68,10 +68,10 @@
         <script>
             $(function() {
                 $("#pagination").pagination({
-                    currentPage: 2,
+                    currentPage: {{ data.follo }},
                     totalPage: 3,
                     callback: function(current) {
-                        alert('ok!');
+                        window.location.href = '/user/user_follow.html?page='+current;
                     }
                 });
             });

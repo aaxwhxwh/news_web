@@ -102,7 +102,7 @@
                 {% if data.author_id %}
                     <a href="#" class="author_pic"><img src="{{ data.author.avatar_url }}" alt="author_pic"></a>
                     <a href="#" class="author_name" author_id="{{ data.author.id }}">{{ data.author.nick_name }}</a>
-                    <div class="author_resume">{{ data.author.nick_name }}的简介,{{ data.author.nick_name }}</div>
+                    <div class="author_resume">{{ data.author.signature }}</div>
                     <div class="writings"><span>总篇数</span><b>{{ data.news_num }}</b></div>
                     <div class="follows"><span>粉丝</span><b>{{ data.fans_num }}</b></div>
 

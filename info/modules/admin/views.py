@@ -5,11 +5,12 @@
 @file: views.py
 @time: 2018/08/17
 """
+import random
 from datetime import datetime, timedelta
 
-from flask import render_template, current_app, jsonify, session, g, request, url_for, redirect
+from flask import render_template, current_app, jsonify, session, g, request, url_for, redirect, abort
 
-from info import db
+from info import db, constants
 from info.models import User, News, Category
 from info.utils.response_code import RET
 from . import admin_blue
@@ -168,15 +169,19 @@ def user_list():
 @admin_blue.route('/news_review')
 def news_review():
     current_page = request.args.get('page', '1')
-    per_page = request.args.get('per_page', '10')
+    keywords = request.args.get('keywords')
     try:
-        current_page, per_page = int(current_page), int(per_page)
+        current_page = int(current_page)
     except Exception as e:
         current_app.logger.error(e)
-        return jsonify(errno=RET.DATAERR, errmsg="请求参数格式错误")
+        current_page = 1
+
+    filters = [News.status==1]
+    if keywords:
+        filters.append(News.title.contains(keywords))
 
     try:
-        paginate = News.query.filter_by(status=1).order_by(News.create_time.desc()).paginate(current_page, per_page, False)
+        paginate = News.query.filter(*filters).order_by(News.create_time.desc()).paginate(current_page, constants.ADMIN_NEWS_PAGE_MAX_COUNT, False)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
@@ -200,16 +205,18 @@ def news_review():
 @admin_blue.route('/news_edit')
 def news_edit():
     current_page = request.args.get('page', '1')
-    per_page = request.args.get('per_page', '10')
+    keywords = request.args.get('keywords')
     try:
-        current_page, per_page = int(current_page), int(per_page)
+        current_page = int(current_page)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DATAERR, errmsg="请求参数格式错误")
 
+    filters = [News.status==1]
+    if keywords:
+        filters.append(News.title.contains(keywords))
     try:
-        paginate = News.query.filter_by(status=1).order_by(News.create_time.desc()).paginate(current_page, per_page,
-                                                                                             False)
+        paginate = News.query.filter(*filters).order_by(News.create_time.desc()).paginate(current_page, constants.ADMIN_NEWS_PAGE_MAX_COUNT, False)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
@@ -231,9 +238,61 @@ def news_edit():
     return render_template('admin/news_edit.html', data=data)
 
 
-@admin_blue.route('/news_type')
+@admin_blue.route('/news_type', methods=["GET", "POST"])
 def news_type():
-    return render_template('admin/news_type.html')
+
+    if request.method == "GET":
+
+        try:
+            categories = Category.query.all()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+
+        category_list = []
+        for category in categories:
+            category_list.append(category.to_dict())
+        category_list.pop(0)
+
+        data = {
+            "category_list": category_list
+        }
+        return render_template('admin/news_type.html', data=data)
+
+    category_id = request.json.get('id')
+    name = request.json.get('name')
+    print(category_id, name)
+
+    if not name:
+        return jsonify(errno=RET.NODATA, errmsg="请求数据为空")
+
+    if category_id:
+        try:
+            category = Category.query.get(category_id)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+
+        category.name = name
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+    else:
+        category = Category()
+        category.name = name
+        try:
+            db.session.add(category)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+
+    return jsonify(errno=RET.OK, errmsg="操作成功")
 
 
 @admin_blue.route('/news_review_detail/<int:news_id>', methods=["GET", "POST"])
@@ -276,39 +335,44 @@ def news_review_detail(news_id):
         else:
             new.status = '-1'
             new.reason = reason
-
     else:
         new.status = '0'
 
     try:
         db.session.commit()
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="数据库连接失败")
 
     return jsonify(errno=RET.OK, errmsg="审核已完成")
 
 
-@admin_blue.route('/news_edit_detail/<int:news_id>', methods=["GET", "POST"])
-def news_edit_detail(news_id):
+@admin_blue.route('/news_edit_detail', methods=["GET", "POST"])
+def news_edit_detail():
     if request.method == "GET":
+        news_id = request.args.get('news_id')
+        if not news_id:
+            abort(404)
+
         try:
             new = News.query.get(news_id)
         except Exception as e:
             current_app.logger.error(e)
-            return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+            return render_template('admin/news_edit_detail.html', errmsg='查询数据错误')
 
         if not new:
-            return jsonify(errno=RET.NODATA, errmsg="查询新闻为空")
+            return render_template('admin/news_edit_detail.html', errmsg='未查询到数据')
 
+        categories = []
         try:
-            categorys = Category.query.filter().all()
+            categories = Category.query.all()
         except Exception as e:
             current_app.logger.error(e)
-            return jsonify(errno=RET.DBERR, errmsg="查询数据失败")
+            render_template('admin/news_edit_detail.html', errmsg='查询分类数据错误')
 
         category_list = []
-        for category in categorys:
+        for category in categories:
             category_list.append(category.to_dict())
 
         category_list.pop(0)
@@ -320,6 +384,49 @@ def news_edit_detail(news_id):
         return render_template('admin/news_edit_detail.html', data=data)
 
     title = request.form.get('title')
+    news_id = request.form.get('news_id')
+    digest = request.form.get('digest')
+    content = request.form.get('content')
+    image = request.files.get('index_image')
+    category = request.form.get('category_id')
 
-    print(title, news_id)
+    if not all([title, news_id, digest, content, category]):
+        return jsonify(errno=RET.PARAMERR, errmsg="请求数据缺失")
+
+    try:
+        new = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+
+    if not new:
+        return jsonify(errno=RET.NODATA, errmsg="该新闻不存在")
+
+    num = random_string()
+    print(image)
+    if image:
+        try:
+            image.save('./info/static/news/images/index/index_pic_' + num + '.png')
+            new.index_image_url = './info/static/news/images/index/index_pic_' + num + '.png'
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.IOERR, errmsg="文件保存错误")
+
+    new.title = title
+    new.digest = digest
+    new.category_id = category
+    new.content = content
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据库操作错误")
+
     return jsonify(errno=RET.OK, errmsg="修改已成功")
+
+
+def random_string(length=32):
+    base_str = 'abcdefghijklnopqrstuvwxyz1234567890'
+    return ''.join(random.choice(base_str) for i in range(length))

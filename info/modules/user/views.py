@@ -229,7 +229,7 @@ def user_news_list():
     try:
         paginate = user.news_list.paginate(cur_page, constants.USER_FOLLOWED_MAX_COUNT, False)
     except Exception as e:
-        cur_page.logger.error(e)
+        current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="请求参数格式错误")
 
     total_page = paginate.pages

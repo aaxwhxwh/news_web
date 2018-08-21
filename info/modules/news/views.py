@@ -8,7 +8,7 @@
 from flask import request, jsonify, current_app, render_template, g
 
 from info import db
-from info.models import News, User, Comment
+from info.models import News, User, Comment, CommentLike
 from info.utils.commons import login_status
 from info.utils.response_code import RET
 from . import news_blue
@@ -101,9 +101,24 @@ def get_new(news_id):
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="数据库读取错误")
 
+    comment_like_ids = []
+    if g.user:
+        try:
+            comment_ids = [comment.id for comment in comments]
+            if len(comment_ids) > 0:
+                comment_likes = CommentLike.query.filter(CommentLike.comment_id.in_(comment_ids),
+                                                         CommentLike.user_id == g.user.id)
+                comment_like_ids = [comment_like.comment_id for comment_like in comment_likes]
+        except Exception as e:
+            current_app.logger.error(e)
+
     comment_list = []
-    for comment in comments:
-        comment_list.append(comment.to_dict())
+    for comment in comments if comments else []:
+        comment_dict = comment.to_dict()
+        comment_dict['is_like'] = False
+        if g.user and comment.id in comment_like_ids:
+            comment_dict['is_like'] = True
+        comment_list.append(comment_dict)
 
     # 判断作者被关注状态
     is_focused = False
@@ -143,7 +158,8 @@ def get_new(news_id):
         "is_focused": is_focused,
         "fans_num": fans_num,
         "news_num": news_num,
-        "comment_list": comment_list
+        "comment_list": comment_list,
+
     }
 
     new.clicks += 1
@@ -262,6 +278,65 @@ def news_comment():
         return jsonify(errno=RET.DBERR, errmsg="数据库存储错误")
 
     return jsonify(errno=RET.OK, errmsg="评论成功", data=comment.to_dict())
+
+
+@news_blue.route('/comment_like', methods=["POST"])
+@login_status
+def comment_like():
+
+    user = g.user
+
+    if not user:
+        return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
+
+    comment_id = request.json.get('comment_id')
+    action = request.json.get('action')
+
+    if not all([comment_id, action]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数不完整")
+
+    if action not in ["add", "remove"]:
+        return jsonify(errno=RET.DATAERR, errmsg="请求参数格式错误")
+
+    try:
+        comment_id = int(comment_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DATAERR, errmsg="请求参数格式错误")
+
+    try:
+        comments = Comment.query.get(comment_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg='保存数据失败')
+    if not comments:
+        return jsonify(errno=RET.NODATA, errmsg='评论不存在')
+
+    if action == 'add':
+        comment_like = CommentLike()
+        comment_like.comment_id = comment_id
+        comment_like.user_id = user.id
+        db.session.add(comment_like)
+        comments.like_count += 1
+    else:
+        try:
+            comment_like = CommentLike.query.filter(CommentLike.comment_id==comment_id, CommentLike.user_id==user.id).first()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据库查询失败")
+
+        if comment_like:
+            db.session.delete(comment_like)
+            comments.like_count -= 1
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据库操作失败")
+
+    return jsonify(errno=RET.OK, errmsg="点赞成功")
 
 
 
